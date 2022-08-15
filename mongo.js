@@ -14,6 +14,7 @@ const url = `mongodb+srv://Alexmpc:${password}@cluster0.esmqnvs.mongodb.net/phon
 const personSchema = new mongoose.Schema({
   name: String,
   number: String,
+  id: Number
 });
 
 const Person = mongoose.model("Person", personSchema);
@@ -32,6 +33,7 @@ mongoose
       const person = new Person({
         name: process.argv[3],
         number: process.argv[4],
+        id: Math.floor(Math.random() * 100)
       });
       return person.save();
     }
