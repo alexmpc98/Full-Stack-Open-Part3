@@ -15,8 +15,7 @@ mongoose
 
 const personSchema = new mongoose.Schema({
   name: String,
-  number: String,
-  id: Number,
+  number: String
 });
 
 personSchema.set('toJSON', {
@@ -26,7 +25,5 @@ personSchema.set('toJSON', {
       delete returnedObject.__v
     }
   })
-
-  
 
 module.exports = mongoose.model("Person", personSchema);
