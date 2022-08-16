@@ -14,13 +14,13 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("build"));
 
-app.get("/api/persons", (request, response) => {
+app.get("/api/persons", (request, response, next) => {
   Person.find({}).then((persons) => {
     response.json(persons);
   }).catch((error) => next(error));
 });
 
-app.get("/info", (request, response) => {
+app.get("/info", (request, response, next) => {
   Person.count({}, function(error, numOfDocs) {
     response.send(
       `<p>Phonebook has info for ${numOfDocs} people.</p><p>${new Date()}</p>`
@@ -43,7 +43,7 @@ app.get("/api/persons/:id", (request, response, next) => {
 });
 
 
-app.put("/api/persons/:id", (request, response) => {
+app.put("/api/persons/:id", (request, response, next) => {
   const body = request.body;
 
   const person = {
@@ -51,7 +51,7 @@ app.put("/api/persons/:id", (request, response) => {
     number: body.number,
   };
 
-  Person.findByIdAndUpdate(request.params.id, person, { new: true })
+  Person.findByIdAndUpdate(request.params.id, person, { new: true, runValidators: true, context: 'query' })
     .then((updatedPerson) => {
       response.json(updatedPerson)
     })
@@ -60,7 +60,7 @@ app.put("/api/persons/:id", (request, response) => {
     });
 });
 
-app.delete("/api/persons/:id", (request, response) => {
+app.delete("/api/persons/:id", (request, response, next) => {
   Person.findByIdAndRemove(request.params.id)
     .then((result) => {
       response.status(204).end();
@@ -68,9 +68,8 @@ app.delete("/api/persons/:id", (request, response) => {
     .catch((error) => next(error));
 });
 
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", (request, response, next) => {
   const body = request.body;
-  console.log(body)
   if (!body.name) {
     next("Name is missing");
   }
@@ -78,14 +77,14 @@ app.post("/api/persons", (request, response) => {
     next("Number is missing");
   }
 
-  // Person.find({}).then(result => {
-  //   result.forEach(person => {
-  //     if(person.name === body.name){
-  //       return response.status(400).json({
-  //         error: body.name + ' already exists! name must be unique'
-  //       })}
-  //     })
-  // })
+  Person.find({}).then(result => {
+    result.forEach(person => {
+      if(person.name === body.name){
+        return response.status(400).json({
+          error: body.name + ' already exists! name must be unique'
+        })}
+      })
+  })
 
   const person = new Person({
     name: body.name,
@@ -102,3 +101,17 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler);
